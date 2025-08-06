@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Cadastro, Lista e Impressão</title>
+<style>
+/* =========  CSS original  ========= */
+*{box-sizing:border-box;font-family:Arial, sans-serif;}
+body{margin:20px;background:#f9f9f9;}
+h2,h3,h4{margin:5px 0;}
+.container-form{width:100%;background:#fff;border:1px solid #ccc;padding:15px;margin-bottom:20px;}
+.container-form label{display:block;margin-bottom:5px;font-weight:bold;}
+.container-form input,.container-form textarea{width:100%;padding:8px;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+table,th,td{border:1px solid #ccc;}
+th,td{padding:6px;text-align:center;}
+.pay-bullet{display:inline-block;width:12px;height:12px;border-radius:50%;margin-left:4px;vertical-align:middle;}
+.linha-concluida{background:#ccffcc;}
+.impressao{display:none;position:absolute;left:-9999px;}
+@media print{
+  body *{visibility:hidden!important;}
+  .impressao,.impressao *{visibility:visible!important;}
+  .impressao{display:block!important;position:fixed!important;top:0;left:0;width:100%;background:#fff;}
+}
+</style>
+</head>
+<body>
+
+<h2>Cadastro e Impressão</h2>
+
+<!-- ========== FORMULÁRIO ========== -->
+<div class="container-form">
+  <label>Nome:<input id="cad-nome"></label>
+  <label>Telefone:<input id="cad-tel"></label>
+  <label>Objetos:<input id="cad-obj"></label>
+  <label>Descrição:<textarea id="cad-obs" rows="2"></textarea></label>
+  <label>Dias úteis:<input id="cad-dias" type="number"></label>
+  <label>Valor (R$):<input id="cad-valor"></label>
+  <button onclick="confirmar()">Confirmar & Imprimir</button>
+</div>
+
+<h3>Lista de Cadastros</h3>
+<table id="tbl">
+  <thead><tr><th>Nº</th><th>Nome</th><th>Telefone</th><th>Objetos</th><th>Entrada</th><th>Volta</th><th>Valor</th><th>Pagou?</th><th>Status</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<!-- ========== FOLHA IMPRESSÃO (oculta) ========== -->
+<div class="impressao" id="folha">
+  <h3>Recibo Ponto 17 – Nº <span id="p-num"></span></h3>
+  <p><b>Nome:</b> <span id="p-nome"></span></p>
+  <p><b>Telefone:</b> <span id="p-tel"></span></p>
+  <p><b>Objetos:</b> <span id="p-obj"></span></p>
+  <p><b>Descrição:</b> <span id="p-obs"></span></p>
+  <p><b>Valor:</b> R$ <span id="p-val"></span></p>
+  <p><b>Entrada:</b> <span id="p-ent"></span> – <b>Volta:</b> <span id="p-vol"></span></p>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const SCRIPT_URL = 'SEU_LINK_DO_WEBAPP'; //  <<< cole aqui o /exec
+let num = 1;
+
+/* ===== CONFIRMAR ===== */
+function confirmar(){
+  const nome = v('cad-nome'), tel=v('cad-tel'), obj=v('cad-obj'),
+        obs  = v('cad-obs'),  dias=parseInt(v('cad-dias')||0,10),
+        val  = v('cad-valor')||'___';
+
+  if(!nome) return alert('Preencha o nome');
+
+  const hoje = new Date(), ent=dat(hoje);
+  const vol = dat(new Date(hoje.getTime()+dias*864e5));
+
+  /* tabela */
+  const tb=document.querySelector('#tbl tbody');
+  const tr=tb.insertRow();
+  [num,nome,tel,obj,ent,vol,val,'Não','EM CONSERTO'].forEach(t=>tr.insertCell().textContent=t);
+
+  /* impressão */
+  setTxt('p-num',num); setTxt('p-nome',nome); setTxt('p-tel',tel);
+  setTxt('p-obj',obj); setTxt('p-obs',obs);  setTxt('p-val',val);
+  setTxt('p-ent',ent); setTxt('p-vol',vol);
+  window.print();
+
+  /* envia planilha */
+  enviar({numero:num,nome,tel,objetos:obj,entrada:ent,volta:vol,valor:val,pagou:'Não',status:'EM CONSERTO',obs});
+  num++;
+}
+
+/* ===== PLANILHA ===== */
+async function enviar(o){
+  try{
+    await fetch(SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(o)
+    });
+    console.log('Ok planilha');
+  }catch(e){console.error('Falha planilha',e);}
+}
+(async()=>{          // carrega existentes
+  try{
+    const r=await fetch(SCRIPT_URL+'?action=list');
+    if(!r.ok) throw'';
+    const dados=await r.json();
+    dados.forEach(d=>{
+      const tr=document.querySelector('#tbl tbody').insertRow();
+      [d.numero,d.nome,d.telefone,d.objetos,d.entrada,d.volta,d.valor,d.pagou,d.status]
+      .forEach(t=>tr.insertCell().textContent=t);
+      if(+d.numero>=num) num=+d.numero+1;
+    });
+  }catch{}
+})();
+
+/* ===== UTILS ===== */
+function v(id){return document.getElementById(id).value.trim();}
+function setTxt(id,t){document.getElementById(id).textContent=t;}
+function dat(d){return d.toLocaleDateString('pt-BR');}
+</script>
+</body>
+</html>

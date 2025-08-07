@@ -71,7 +71,7 @@
     <!-- TELA 1: LISTA DE TREINOS (PRINCIPAL) -->
     <div id="screen-list" class="max-w-md mx-auto p-4 screen active">
         <header class="text-center my-4">
-            <h1 class="text-red-500 text-2xl font-bold tracking-wider">DONT DIE</h1>
+            <h1 class="text-red-500 text-2xl font-bold tracking-wider">MYWORKOUT 2.0</h1>
         </header>
         <div id="workout-tabs" class="flex justify-around bg-gray-300 p-1 rounded-lg mb-6">
             <button data-tab="A" class="flex-1 text-center py-2 rounded-md tab-active">A</button>
@@ -94,6 +94,12 @@
         </div>
         <div class="mt-8"><button id="add-new-exercise-btn" class="w-full text-blue-600 font-semibold py-3 rounded-lg hover:bg-gray-200">+ Adicionar novo exercício</button></div>
         <div class="mt-4 mb-20"><button id="finish-workout-btn" data-state="active" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg transition-colors duration-300">✓ Treinei</button></div>
+    
+        <!-- Seção de Citação Motivacional -->
+        <div id="quote-section" class="max-w-md mx-auto p-4 text-center mt-4 mb-8">
+            <p id="quote-text" class="text-gray-600 italic"></p>
+            <p id="quote-author" class="text-gray-800 font-semibold mt-2"></p>
+        </div>
     </div>
 
     <!-- TELA 2: EDITAR EXERCÍCIO -->
@@ -183,6 +189,59 @@
         const predefinedExercises = [
             'Supino Reto c/ Barra', 'Supino Inclinado c/ Halteres', 'Desenvolvimento c/ Halteres', 'Elevação Lateral', 'Tríceps na Polia', 'Rosca Direta', 'Agachamento Livre', 'Leg Press', 'Cadeira Extensora', 'Mesa Flexora', 'Puxada Frontal', 'Remada Curvada', 'Abdominal Infra'
         ];
+        
+        const quotes = [
+            { quote: "Nada vem fácil, mas enquanto você estiver respirando, sempre estará a um suspiro de realizar seus sonhos. Faça cada suspiro valer a pena.", author: "Kai Greene" },
+            { quote: "Para mim, a vida é estar continuamente faminto. O significado da vida não é simplesmente existir, sobreviver, mas avançar, subir, alcançar, conquistar.", author: "Arnold Schwarzenegger" },
+            { quote: "Se fosse fácil, todo mundo seria campeão, então decida se você será aquela pessoa que vai se tornar um campeão.", author: "Phil Heath" },
+            { quote: "Todo mundo quer ser fisiculturista, mas ninguém quer levantar pesos pesados.", author: "Ronnie Coleman" },
+            { quote: "Lembre-se: você não pode subir a escada do sucesso com as mãos nos bolsos.", author: "Arnold Schwarzenegger" },
+            { quote: "Não há atalhos, apenas trabalho duro – treinar, comer, dormir e treinar mais um pouco.", author: "Ronnie Coleman" },
+            { quote: "Muitos caras têm genética melhor, mas se você trabalhar duro e com consistência, pode superá-los.", author: "Frank Zane" },
+            { quote: "Não há atalhos – tudo é repetição, repetição, repetição.", author: "Arnold Schwarzenegger" },
+            { quote: "Para ser campeão, sua meta é ser um pouco melhor a cada dia, garantindo que cada dia seja uma oportunidade de dar o seu melhor.", author: "Phil Heath" },
+            { quote: "O fisiculturismo é como qualquer outro esporte: para ter sucesso, você precisa se dedicar 100% ao treino, à dieta e ao aspecto mental.", author: "Arnold Schwarzenegger" },
+            { quote: "Moderação no fisiculturismo é um vício; moderação na disciplina é fracasso.", author: "Dorian Yates" },
+            { quote: "Eu nunca trapaceei na dieta nem uma vez – eu nem sequer usava ketchup.", author: "Jay Cutler" },
+            { quote: "Consistência e dedicação são o caminho para o sucesso.", author: "Ronnie Coleman" },
+            { quote: "A continuidade é a forma de construir um físico.", author: "Frank Zane" },
+            { quote: "Treine para estimular, não para aniquilar.", author: "Lee Haney" },
+            { quote: "Cada treino é como um tijolo em um edifício, e toda vez que você faz um treino meia-boca, você deixa de colocar um tijolo – outra pessoa coloca no lugar.", author: "Dorian Yates" },
+            { quote: "As últimas três ou quatro repetições é que fazem o músculo crescer. Essa zona de dor separa o campeão de quem não é.", author: "Arnold Schwarzenegger" },
+            { quote: "Uma única série em intensidade extrema já faz o trabalho de construir músculo. Se você sente que consegue fazer um segundo, então não deu tudo de si no primeiro.", author: "Dorian Yates" },
+            { quote: "O maior erro que a maioria dos iniciantes comete é colocar 100% do esforço na parte positiva do exercício e não dar atenção à parte negativa.", author: "Dorian Yates" },
+            { quote: "Se a barra não está envergando, você só está fingindo.", author: "Ronnie Coleman" },
+            { quote: "A resistência que você enfrenta na academia e na vida só serve para construir um caráter forte.", author: "Arnold Schwarzenegger" },
+            { quote: "Mantenha o foco nos seus objetivos, não importa o que aconteça.", author: "Dorian Yates" },
+            { quote: "A força não vem da vitória. Suas lutas desenvolvem suas forças. Quando você enfrenta dificuldades e decide não se render, isso é força.", author: "Arnold Schwarzenegger" },
+            { quote: "Sua mente desiste cem vezes antes do seu corpo. Sinta a dor e faça mesmo assim.", author: "Ronnie Coleman" },
+            { quote: "A mente sempre falha primeiro; o corpo, não.", author: "Dorian Yates" },
+            { quote: "A mente é o limite. Enquanto ela puder imaginar que você pode fazer algo, você pode, contanto que acredite 100%.", author: "Arnold Schwarzenegger" },
+            { quote: "Seu corpo não sabe o peso absoluto que você levanta; ele apenas reconhece quão pesado parece. O segredo é fazer pesos leves parecerem pesados.", author: "Frank Zane" },
+            { quote: "É simples: se balança, é gordura.", author: "Arnold Schwarzenegger" },
+            { quote: "Você tem que comer muito para ficar grande.", author: "Ronnie Coleman" },
+            { quote: "O sucesso no fisiculturismo depende principalmente da alimentação.", author: "Jay Cutler" },
+            { quote: "O caminho para ganhar músculo é consumir mais calorias do que o necessário para manter seu peso atual.", author: "Dorian Yates" },
+            { quote: "Um físico bem construído é um símbolo de status. Significa que você trabalhou duro por ele – dinheiro nenhum pode comprá-lo. Você não pode pegá-lo emprestado, não pode herdá-lo, não pode roubá-lo. Você não consegue mantê-lo sem trabalho constante. Ele mostra disciplina, respeito próprio, paciência, ética de trabalho e paixão.", author: "Arnold Schwarzenegger" },
+            { quote: "Ser fraco é uma escolha; ser forte também.", author: "Frank Zane" },
+            { quote: "A dor é temporária, o orgulho é para sempre.", author: "Ronnie Coleman" },
+            { quote: "Às vezes, as pessoas com os piores passados acabam criando os melhores futuros.", author: "Kai Greene" },
+            { quote: "A pior coisa que posso ser é igual a todo mundo. Eu odeio isso.", author: "Arnold Schwarzenegger" },
+            { quote: "Qualquer um pode treinar para ser um gladiador. O que te diferencia é ter a mentalidade de um campeão. Quando você nasce para a grandeza, isso transparece em tudo que você faz.", author: "Kai Greene" },
+            { quote: "Ser negativo e preguiçoso é uma doença que leva à dor, dificuldades, depressão, má saúde e fracasso. Seja proativo e se importe de verdade para alcançar o sucesso!", author: "Phil Heath" },
+            { quote: "Assim como na musculação, o fracasso é uma experiência necessária para o crescimento; se nunca testarmos nossos limites, nunca saberemos quão fortes realmente somos.", author: "Arnold Schwarzenegger" },
+            { quote: "Se eu ouvisse meus instintos, estaria no bar atrás de mulheres, e não debaixo de uma barra de 180 kg fazendo agachamento.", author: "Dorian Yates" },
+            { quote: "Aprendi que somos sempre mais fortes do que imaginamos.", author: "Arnold Schwarzenegger" },
+            { quote: "A dedicação faz os sonhos se tornarem realidade.", author: "Ronnie Coleman" },
+            { quote: "Não há segredo: é só fazer.", author: "Ronnie Coleman" },
+            { quote: "Eu nunca desisti, mesmo quando me diziam que eu não conseguiria. Nunca subestime o coração de um campeão.", author: "Kai Greene" },
+            { quote: "Fisiculturismo é uma arte – seu corpo é a tela, os pesos são o pincel e a nutrição é a tinta. Todos nós temos a capacidade de transformar um autorretrato em uma obra-prima.", author: "Kai Greene" },
+            { quote: "Dedicação é fazer o que você ama, mesmo nos dias em que você não está a fim.", author: "Ronnie Coleman" },
+            { quote: "Ninguém que deu o seu melhor jamais se arrependeu disso.", author: "Ronnie Coleman" },
+            { quote: "Não há como eu ter conquistado o que conquistei sem ser um bom aluno e ouvir a sabedoria dos outros.", author: "Phil Heath" },
+            { quote: "Seus sonhos serão sempre os mais importantes para você, mais do que para qualquer outra pessoa. Então continue sonhando, continue acreditando e continue avançando.", author: "Kai Greene" },
+            { quote: "Saia, realize seu sonho e vá em frente.", author: "Kai Greene" }
+        ];
 
         // --- FUNÇÕES AUXILIARES ---
         function showScreen(screenId) {
@@ -192,6 +251,15 @@
 
         function generateUniqueId() {
             return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        function showRandomQuote() {
+            const quoteText = document.getElementById('quote-text');
+            const quoteAuthor = document.getElementById('quote-author');
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            const randomQuote = quotes[randomIndex];
+            quoteText.textContent = `"${randomQuote.quote}"`;
+            quoteAuthor.textContent = `– ${randomQuote.author}`;
         }
 
         // --- LÓGICA DE DADOS (Google Sheets) ---
@@ -492,7 +560,7 @@
                     editSetsContainer.innerHTML = '';
                     
                     (exercise.sets || []).forEach(set => {
-                        const editSetHTML = `<div class="edit-set-box bg-gray-100 text-gray-800 p-2 rounded-lg relative cursor-pointer" data-set-id="${set.id}" data-reps="${set.reps}" data-weight="${set.weight}" data-intensity="${set.intensity}"><button class="remove-set-btn absolute -top-1 -right-1 bg-red-500 rounded-full h-5 w-5 text-white flex items-center justify-center text-xs">x</button><div class="reps font-bold">${set.reps}x</div><div class="weight text-sm">${set.weight}kg</div><div class="status text-xs text-gray-600">${set.intensity}</div></div>`;
+                        const editSetHTML = `<div class="edit-set-box bg-gray-100 text-gray-800 p-2 rounded-lg relative cursor-pointer" data-set-id="${set.id}" data-reps="${set.reps}" data-weight="${set.weight}" data-intensity="${set.intensity}" data-completed="${set.completed}"><button class="remove-set-btn absolute -top-1 -right-1 bg-red-500 rounded-full h-5 w-5 text-white flex items-center justify-center text-xs">x</button><div class="reps font-bold">${set.reps}x</div><div class="weight text-sm">${set.weight}kg</div><div class="status text-xs text-gray-600">${set.intensity}</div></div>`;
                         editSetsContainer.insertAdjacentHTML('beforeend', editSetHTML);
                     });
                     editSetsContainer.insertAdjacentHTML('beforeend', `<button id="add-new-set-btn" class="bg-gray-200 text-gray-800 p-2 rounded-lg flex items-center justify-center text-3xl font-bold">+</button>`);
@@ -525,6 +593,7 @@
                 exerciseListContainer.appendChild(li);
             });
             fetchAndOrganizeData();
+            showRandomQuote();
         }
 
         document.getElementById('workout-tabs').addEventListener('click', (e) => {
@@ -578,19 +647,19 @@
         document.getElementById('edit-sets-container').addEventListener('click', (e) => {
             const setBox = e.target.closest('.edit-set-box');
             if (e.target.id === 'add-new-set-btn') {
-                // **NOVO**: Lógica para copiar a última série
                 const allSets = document.querySelectorAll('#edit-sets-container .edit-set-box');
-                let lastSetData = { reps: 8, weight: 0, intensity: 'Pesado' }; // Valores padrão se for a primeira série
+                let lastSetData = { reps: 8, weight: 0, intensity: 'Pesado', completed: false };
                 if (allSets.length > 0) {
                     const lastSet = allSets[allSets.length - 1];
                     lastSetData = {
                         reps: lastSet.dataset.reps,
                         weight: lastSet.dataset.weight,
-                        intensity: lastSet.dataset.intensity
+                        intensity: lastSet.dataset.intensity,
+                        completed: false 
                     };
                 }
                 const newSet = { id: generateUniqueId(), ...lastSetData };
-                const newSetHTML = `<div class="edit-set-box bg-gray-100 text-gray-800 p-2 rounded-lg relative cursor-pointer" data-set-id="${newSet.id}" data-reps="${newSet.reps}" data-weight="${newSet.weight}" data-intensity="${newSet.intensity}"><button class="remove-set-btn absolute -top-1 -right-1 bg-red-500 rounded-full h-5 w-5 text-white flex items-center justify-center text-xs">x</button><div class="reps font-bold">${newSet.reps}x</div><div class="weight text-sm">${newSet.weight}kg</div><div class="status text-xs text-gray-600">${newSet.intensity}</div></div>`;
+                const newSetHTML = `<div class="edit-set-box bg-gray-100 text-gray-800 p-2 rounded-lg relative cursor-pointer" data-set-id="${newSet.id}" data-reps="${newSet.reps}" data-weight="${newSet.weight}" data-intensity="${newSet.intensity}" data-completed="${newSet.completed}"><button class="remove-set-btn absolute -top-1 -right-1 bg-red-500 rounded-full h-5 w-5 text-white flex items-center justify-center text-xs">x</button><div class="reps font-bold">${newSet.reps}x</div><div class="weight text-sm">${newSet.weight}kg</div><div class="status text-xs text-gray-600">${newSet.intensity}</div></div>`;
                 e.target.insertAdjacentHTML('beforebegin', newSetHTML); 
                 return;
             }
@@ -608,7 +677,6 @@
         document.querySelectorAll('.go-back').forEach(button => { button.onclick = (e) => showScreen(e.currentTarget.dataset.target); });
 
         document.getElementById('save-set-btn').onclick = () => {
-            // **NOVO**: Lógica para propagar as alterações para as séries seguintes
             const newReps = document.getElementById('edit-reps-input').value;
             const newWeight = document.getElementById('edit-weight-input').value;
             const newIntensity = document.querySelector('#intensity-buttons-container .intensity-btn.active').textContent;
@@ -617,7 +685,6 @@
             const currentIndex = allSetBoxes.findIndex(box => box.dataset.setId === currentSetId);
 
             if (currentIndex !== -1) {
-                // Itera da série atual em diante
                 for (let i = currentIndex; i < allSetBoxes.length; i++) {
                     const box = allSetBoxes[i];
                     box.dataset.reps = newReps;
@@ -647,7 +714,7 @@
                     reps: box.dataset.reps,
                     weight: box.dataset.weight,
                     intensity: box.dataset.intensity,
-                    completed: false
+                    completed: box.dataset.completed === 'true'
                 });
             });
             exercise.sets = newSets;
@@ -656,10 +723,10 @@
             renderWorkout(currentWorkoutId);
         };
         
+        // **CORRIGIDO**: Lógica do botão de remover
         document.getElementById('remove-exercise-btn').onclick = () => {
-            if (confirm('Tem certeza que deseja remover este exercício?')) { 
-                deleteExerciseFromSheet(currentExerciseId);
-            }
+            // Removido o 'confirm' para melhor compatibilidade
+            deleteExerciseFromSheet(currentExerciseId);
         };
 
         document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(button => {

@@ -16,108 +16,178 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100">
 
-    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">Registrar Treino</h1>
-            <p class="text-gray-500 mt-2">Adicione um novo exercício à sua planilha.</p>
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <!-- Seção do Formulário -->
+        <div class="w-full bg-white rounded-xl shadow-lg p-8 mb-10">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">Registrar Treino</h1>
+                <p class="text-gray-500 mt-2">Adicione um novo exercício à sua planilha.</p>
+            </div>
+
+            <form id="workoutForm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="exercicio" class="block text-sm font-medium text-gray-700 mb-1">Exercício</label>
+                        <input type="text" id="exercicio" name="exercicio" placeholder="Ex: Supino Reto" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                    </div>
+                    <div>
+                        <label for="series" class="block text-sm font-medium text-gray-700 mb-1">Séries</label>
+                        <input type="number" id="series" name="series" placeholder="Ex: 4" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                    </div>
+                    <div>
+                        <label for="repeticoes" class="block text-sm font-medium text-gray-700 mb-1">Repetições</label>
+                        <input type="text" id="repeticoes" name="repeticoes" placeholder="Ex: 10-12" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button type="submit" id="submitButton"
+                            class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out">
+                        Salvar Treino
+                    </button>
+                </div>
+            </form>
+            <div id="statusMessage" class="mt-6 text-center text-sm font-medium"></div>
         </div>
 
-        <!-- Formulário de Treino -->
-        <form id="workoutForm">
-            <div class="space-y-6">
-                <!-- Campo Exercício -->
-                <div>
-                    <label for="exercicio" class="block text-sm font-medium text-gray-700 mb-1">Exercício</label>
-                    <input type="text" id="exercicio" name="exercicio" placeholder="Ex: Supino Reto" required
-                           class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                </div>
-
-                <!-- Campo Séries -->
-                <div>
-                    <label for="series" class="block text-sm font-medium text-gray-700 mb-1">Séries</label>
-                    <input type="number" id="series" name="series" placeholder="Ex: 4" required
-                           class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                </div>
-
-                <!-- Campo Repetições -->
-                <div>
-                    <label for="repeticoes" class="block text-sm font-medium text-gray-700 mb-1">Repetições</label>
-                    <input type="text" id="repeticoes" name="repeticoes" placeholder="Ex: 10-12" required
-                           class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                </div>
+        <!-- Seção da Tabela de Treinos -->
+        <div class="w-full bg-white rounded-xl shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Treinos Registrados</h2>
+            <div id="loadingIndicator" class="text-center text-gray-500">Carregando treinos...</div>
+            <div class="overflow-x-auto">
+                <table id="workoutTable" class="min-w-full leading-normal hidden">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200 bg-gray-50">
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Exercício</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Séries</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Repetições</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workoutTableBody">
+                        <!-- As linhas de treino serão inseridas aqui -->
+                    </tbody>
+                </table>
             </div>
-
-            <!-- Botão de Envio -->
-            <div class="mt-8">
-                <button type="submit" id="submitButton"
-                        class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out">
-                    Salvar Treino
-                </button>
-            </div>
-        </form>
-
-        <!-- Mensagem de Status -->
-        <div id="statusMessage" class="mt-6 text-center text-sm font-medium"></div>
+        </div>
     </div>
 
     <script>
-        // Seleciona os elementos do formulário e da mensagem de status
+        // --- SELETORES DE ELEMENTOS ---
         const form = document.getElementById('workoutForm');
         const submitButton = document.getElementById('submitButton');
         const statusMessage = document.getElementById('statusMessage');
+        const table = document.getElementById('workoutTable');
+        const tableBody = document.getElementById('workoutTableBody');
+        const loadingIndicator = document.getElementById('loadingIndicator');
 
-        // URL do seu script do Google Apps
+        // --- CONFIGURAÇÃO ---
         const googleAppScriptUrl = 'https://script.google.com/macros/s/AKfycby9r8mYpPpBQUJRvs1iOETyJ-ABry9NqyOM041ckQA1nGtHqCFj1SML6y3dpDQwzXj2/exec';
 
-        // Adiciona um ouvinte de evento para o envio do formulário
-        form.addEventListener('submit', event => {
-            // Previne o comportamento padrão de recarregar a página
+        // --- FUNÇÕES ---
+
+        /**
+         * Busca os dados da planilha e os exibe na tabela.
+         */
+        async function fetchWorkouts() {
+            loadingIndicator.textContent = 'Carregando treinos...';
+            loadingIndicator.style.display = 'block';
+            table.classList.add('hidden');
+            
+            try {
+                // A requisição GET é o padrão para o fetch
+                const response = await fetch(googleAppScriptUrl);
+                if (!response.ok) throw new Error('A resposta da rede não foi OK.');
+                
+                const result = await response.json();
+                if (result.result === 'success') {
+                    displayWorkouts(result.data);
+                } else {
+                    throw new Error(result.message || 'Erro desconhecido ao buscar dados.');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar treinos:', error);
+                loadingIndicator.textContent = 'Falha ao carregar treinos. Verifique o console para mais detalhes.';
+            }
+        }
+
+        /**
+         * Renderiza os treinos na tabela.
+         * @param {Array} workouts - Um array de objetos de treino.
+         */
+        function displayWorkouts(workouts) {
+            tableBody.innerHTML = ''; // Limpa a tabela antes de adicionar novos dados
+
+            if (workouts.length === 0) {
+                loadingIndicator.textContent = 'Nenhum treino registrado ainda.';
+                loadingIndicator.style.display = 'block';
+                table.classList.add('hidden');
+                return;
+            }
+
+            // Inverte o array para mostrar os treinos mais recentes primeiro
+            workouts.reverse();
+
+            workouts.forEach(workout => {
+                const row = tableBody.insertRow();
+                row.className = 'border-b border-gray-200 hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.data}</td>
+                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.exercicio}</td>
+                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.series}</td>
+                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.repeticoes}</td>
+                `;
+            });
+
+            loadingIndicator.style.display = 'none';
+            table.classList.remove('hidden');
+        }
+
+        // --- EVENT LISTENERS ---
+
+        /**
+         * Lida com o envio do formulário para salvar um novo treino.
+         */
+        form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            // Desabilita o botão e mostra uma mensagem de carregamento
             submitButton.disabled = true;
             submitButton.textContent = 'Salvando...';
             statusMessage.textContent = '';
             statusMessage.classList.remove('text-green-600', 'text-red-600');
 
-            // Cria um objeto FormData com os dados do formulário
-            const formData = new FormData(form);
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(googleAppScriptUrl, { method: 'POST', body: formData });
+                const result = await response.json();
 
-            // Envia os dados para a planilha do Google usando a API Fetch
-            fetch(googleAppScriptUrl, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                // Verifica se a resposta foi bem-sucedida
-                if (!response.ok) {
-                    // Se não foi, lança um erro para ser pego pelo .catch()
-                    return response.text().then(text => { throw new Error('A resposta da rede não foi OK: ' + text) });
+                if (result.result !== 'success') {
+                    throw new Error(result.message || 'Erro desconhecido ao salvar.');
                 }
-                return response.json(); // Ou .text() dependendo do que seu script retorna
-            })
-            .then(data => {
-                // Lida com a resposta de sucesso
-                console.log('Sucesso:', data);
+                
                 statusMessage.textContent = 'Treino salvo com sucesso!';
                 statusMessage.classList.add('text-green-600');
-                form.reset(); // Limpa o formulário
-            })
-            .catch(error => {
-                // Lida com erros na requisição
-                console.error('Erro:', error);
+                form.reset();
+                fetchWorkouts(); // Recarrega a lista de treinos para incluir o novo
+
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
                 statusMessage.textContent = 'Erro ao salvar. Tente novamente.';
                 statusMessage.classList.add('text-red-600');
-            })
-            .finally(() => {
-                // Reabilita o botão após a conclusão da requisição
+            } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'Salvar Treino';
-            });
+            }
         });
-    </script>
 
+        /**
+         * Carrega os treinos iniciais quando o DOM estiver pronto.
+         */
+        document.addEventListener('DOMContentLoaded', fetchWorkouts);
+    </script>
 </body>
 </html>

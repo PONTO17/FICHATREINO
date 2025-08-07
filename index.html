@@ -1,193 +1,94 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planilha de Treino</title>
-    <!-- Tailwind CSS para estilização -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
+/**
+ * Lida com requisições POST para salvar um novo exercício.
+ */
+function doPost(e) {
+  try {
+    const sheet = getSheet();
+    setupSheet(sheet); // Garante que os cabeçalhos existam
 
-    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
-        <!-- Seção do Formulário -->
-        <div class="w-full bg-white rounded-xl shadow-lg p-8 mb-10">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-800">Registrar Treino</h1>
-                <p class="text-gray-500 mt-2">Adicione um novo exercício à sua planilha.</p>
-            </div>
+    // Extrai os dados enviados pelo formulário do seu app
+    const workoutId = e.parameter.workoutId;
+    const exerciseId = e.parameter.exerciseId;
+    const exerciseName = e.parameter.exerciseName;
+    const restTime = e.parameter.restTime;
+    const observation = e.parameter.observation;
+    const setsJSON = e.parameter.sets; // As séries já vêm como uma string JSON
 
-            <form id="workoutForm">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="exercicio" class="block text-sm font-medium text-gray-700 mb-1">Exercício</label>
-                        <input type="text" id="exercicio" name="exercicio" placeholder="Ex: Supino Reto" required
-                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                    </div>
-                    <div>
-                        <label for="series" class="block text-sm font-medium text-gray-700 mb-1">Séries</label>
-                        <input type="number" id="series" name="series" placeholder="Ex: 4" required
-                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                    </div>
-                    <div>
-                        <label for="repeticoes" class="block text-sm font-medium text-gray-700 mb-1">Repetições</label>
-                        <input type="text" id="repeticoes" name="repeticoes" placeholder="Ex: 10-12" required
-                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                    </div>
-                </div>
-                <div class="mt-8">
-                    <button type="submit" id="submitButton"
-                            class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out">
-                        Salvar Treino
-                    </button>
-                </div>
-            </form>
-            <div id="statusMessage" class="mt-6 text-center text-sm font-medium"></div>
-        </div>
+    // Adiciona a nova linha na planilha
+    sheet.appendRow([workoutId, exerciseId, exerciseName, restTime, observation, setsJSON]);
 
-        <!-- Seção da Tabela de Treinos -->
-        <div class="w-full bg-white rounded-xl shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Treinos Registrados</h2>
-            <div id="loadingIndicator" class="text-center text-gray-500">Carregando treinos...</div>
-            <div class="overflow-x-auto">
-                <table id="workoutTable" class="min-w-full leading-normal hidden">
-                    <thead>
-                        <tr class="border-b-2 border-gray-200 bg-gray-50">
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Exercício</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Séries</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Repetições</th>
-                        </tr>
-                    </thead>
-                    <tbody id="workoutTableBody">
-                        <!-- As linhas de treino serão inseridas aqui -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    return createJsonResponse({ result: 'success', message: 'Exercício salvo com sucesso.' });
+  } catch (error) {
+    return createJsonResponse({ result: 'error', message: error.toString() });
+  }
+}
 
-    <script>
-        // --- SELETORES DE ELEMENTOS ---
-        const form = document.getElementById('workoutForm');
-        const submitButton = document.getElementById('submitButton');
-        const statusMessage = document.getElementById('statusMessage');
-        const table = document.getElementById('workoutTable');
-        const tableBody = document.getElementById('workoutTableBody');
-        const loadingIndicator = document.getElementById('loadingIndicator');
+/**
+ * Lida com requisições GET para ler todos os exercícios salvos.
+ */
+function doGet(e) {
+  try {
+    const sheet = getSheet();
+    setupSheet(sheet);
 
-        // --- CONFIGURAÇÃO ---
-        const googleAppScriptUrl = 'https://script.google.com/macros/s/AKfycby9r8mYpPpBQUJRvs1iOETyJ-ABry9NqyOM041ckQA1nGtHqCFj1SML6y3dpDQwzXj2/exec';
+    // Se a planilha tiver apenas o cabeçalho, retorna uma lista vazia.
+    if (sheet.getLastRow() <= 1) {
+      return createJsonResponse({ result: 'success', data: [] });
+    }
 
-        // --- FUNÇÕES ---
+    // Pega todos os dados da planilha, exceto o cabeçalho.
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
 
-        /**
-         * Busca os dados da planilha e os exibe na tabela.
-         */
-        async function fetchWorkouts() {
-            loadingIndicator.textContent = 'Carregando treinos...';
-            loadingIndicator.style.display = 'block';
-            table.classList.add('hidden');
-            
-            try {
-                // A requisição GET é o padrão para o fetch
-                const response = await fetch(googleAppScriptUrl);
-                if (!response.ok) throw new Error('A resposta da rede não foi OK.');
-                
-                const result = await response.json();
-                if (result.result === 'success') {
-                    displayWorkouts(result.data);
-                } else {
-                    throw new Error(result.message || 'Erro desconhecido ao buscar dados.');
-                }
-            } catch (error) {
-                console.error('Erro ao buscar treinos:', error);
-                loadingIndicator.textContent = 'Falha ao carregar treinos. Verifique o console para mais detalhes.';
-            }
-        }
+    // Mapeia os dados para um formato de objeto que o seu app entende.
+    const exercises = data.map(row => ({
+      workoutId: row[0],
+      id: row[1],
+      name: row[2],
+      restTime: row[3],
+      observation: row[4],
+      sets: JSON.parse(row[5] || '[]') // Converte a string JSON de volta para um objeto
+    }));
 
-        /**
-         * Renderiza os treinos na tabela.
-         * @param {Array} workouts - Um array de objetos de treino.
-         */
-        function displayWorkouts(workouts) {
-            tableBody.innerHTML = ''; // Limpa a tabela antes de adicionar novos dados
+    return createJsonResponse({ result: 'success', data: exercises });
+  } catch (error) {
+    return createJsonResponse({ result: 'error', message: error.toString() });
+  }
+}
 
-            if (workouts.length === 0) {
-                loadingIndicator.textContent = 'Nenhum treino registrado ainda.';
-                loadingIndicator.style.display = 'block';
-                table.classList.add('hidden');
-                return;
-            }
+/**
+ * Configura a planilha, criando a aba e os cabeçalhos se não existirem.
+ */
+function setupSheet(sheet) {
+  if (sheet.getLastRow() === 0) {
+    const headers = [["workoutId", "exerciseId", "exerciseName", "restTime", "observation", "setsJSON"]];
+    sheet.getRange(1, 1, 1, headers[0].length)
+         .setValues(headers)
+         .setFontWeight("bold")
+         .setBackground("#d1d5db"); // Cor cinza para o cabeçalho
+  }
+}
 
-            // Inverte o array para mostrar os treinos mais recentes primeiro
-            workouts.reverse();
+/**
+ * Obtém a aba de destino da planilha.
+ */
+function getSheet() {
+  const SPREADSHEET_ID = '1bUkcQ_C1f2MQ5XnujA78tT1-jsdaIi3JAy_1dcz8uC8';
+  const SHEET_NAME = 'WorkoutsDB'; // Nome da nova aba para organização
+  
+  const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
 
-            workouts.forEach(workout => {
-                const row = tableBody.insertRow();
-                row.className = 'border-b border-gray-200 hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.data}</td>
-                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.exercicio}</td>
-                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.series}</td>
-                    <td class="px-5 py-4 bg-white text-sm text-gray-900">${workout.repeticoes}</td>
-                `;
-            });
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(SHEET_NAME);
+  }
+  return sheet;
+}
 
-            loadingIndicator.style.display = 'none';
-            table.classList.remove('hidden');
-        }
-
-        // --- EVENT LISTENERS ---
-
-        /**
-         * Lida com o envio do formulário para salvar um novo treino.
-         */
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            submitButton.disabled = true;
-            submitButton.textContent = 'Salvando...';
-            statusMessage.textContent = '';
-            statusMessage.classList.remove('text-green-600', 'text-red-600');
-
-            try {
-                const formData = new FormData(form);
-                const response = await fetch(googleAppScriptUrl, { method: 'POST', body: formData });
-                const result = await response.json();
-
-                if (result.result !== 'success') {
-                    throw new Error(result.message || 'Erro desconhecido ao salvar.');
-                }
-                
-                statusMessage.textContent = 'Treino salvo com sucesso!';
-                statusMessage.classList.add('text-green-600');
-                form.reset();
-                fetchWorkouts(); // Recarrega a lista de treinos para incluir o novo
-
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                statusMessage.textContent = 'Erro ao salvar. Tente novamente.';
-                statusMessage.classList.add('text-red-600');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Salvar Treino';
-            }
-        });
-
-        /**
-         * Carrega os treinos iniciais quando o DOM estiver pronto.
-         */
-        document.addEventListener('DOMContentLoaded', fetchWorkouts);
-    </script>
-</body>
-</html>
+/**
+ * Cria uma resposta padrão em formato JSON.
+ */
+function createJsonResponse(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}

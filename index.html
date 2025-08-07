@@ -61,9 +61,47 @@
             opacity: 0.3;
             cursor: not-allowed;
         }
+        .rest-timer-progress {
+            transition: width 0.2s linear; /* Transição padrão para reset */
+        }
+        /* Overlay de Loading */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-direction: column;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-200">
+
+    <!-- OVERLAY DE LOADING -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <span id="loading-text">Carregando...</span>
+    </div>
 
     <!-- TELA 1: LISTA DE TREINOS (PRINCIPAL) -->
     <div id="screen-list" class="max-w-md mx-auto p-4 screen active">
@@ -168,29 +206,78 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- MODELO DE DADOS ---
+        // --- CONFIGURAÇÃO E MODELO DE DADOS ---
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxrQGr_Hcl0cK7a02Wh8WfHWbKTYcFoWsCTnJyDp4sRV_tVHixYvtPzwY9TzCnZHjs/exec';
         let workoutsData = {};
         let currentWorkoutId = 'A';
         let currentExerciseId = null;
-        let currentSetIndex = null;
+        let currentSetId = null;
+        let activeTimers = {}; // Armazena os timers ativos
 
         const screens = document.querySelectorAll('.screen');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
         const predefinedExercises = [
-            // Peito
-            'Supino Reto c/ Barra', 'Supino Reto c/ Halteres', 'Supino Inclinado c/ Barra', 'Supino Inclinado c/ Halteres', 'Supino Declinado c/ Barra', 'Supino Declinado c/ Halteres', 'Crucifixo Reto', 'Crucifixo Inclinado', 'Voador (Peck Deck)', 'Flexão de Braço',
-            // Costas
-            'Puxada Frontal (Pulley)', 'Puxada Trás (Pulley)', 'Remada Curvada', 'Remada Baixa (Sentado)', 'Remada Cavalinho', 'Serrote', 'Barra Fixa', 'Pulldown',
-            // Pernas
-            'Agachamento Livre', 'Leg Press 45', 'Cadeira Extensora', 'Mesa Flexora', 'Afundo', 'Stiff', 'Cadeira Adutora', 'Cadeira Abdutora', 'Panturrilha em Pé', 'Panturrilha Sentado',
-            // Ombros
-            'Desenvolvimento c/ Barra', 'Desenvolvimento c/ Halteres (Arnold Press)', 'Elevação Lateral', 'Elevação Frontal', 'Remada Alta', 'Encolhimento',
-            // Bíceps
-            'Rosca Direta c/ Barra', 'Rosca Alternada', 'Rosca Scott', 'Rosca Martelo', 'Rosca Concentrada',
-            // Tríceps
-            'Tríceps na Polia (Puxador Reto)', 'Tríceps Corda', 'Tríceps Testa', 'Tríceps Francês', 'Mergulho no Banco',
-            // Abdômen
-            'Abdominal Supra', 'Abdominal Infra (Elevação de Pernas)', 'Abdominal Oblíquo', 'Prancha'
+            'Supino Reto c/ Barra', 'Supino Inclinado c/ Halteres', 'Desenvolvimento c/ Halteres', 'Elevação Lateral', 'Tríceps na Polia', 'Rosca Direta', 'Agachamento Livre', 'Leg Press', 'Cadeira Extensora', 'Mesa Flexora', 'Puxada Frontal', 'Remada Curvada', 'Abdominal Infra'
         ];
+
+        // --- FUNÇÕES DE LOADING E PERSISTÊNCIA ---
+        function showLoading(message) {
+            loadingText.textContent = message;
+            loadingOverlay.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        async function saveDataToGoogleSheets() {
+            showLoading('Salvando...');
+            try {
+                // Usamos 'POST' para enviar os dados para a função 'doPost' no Apps Script
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Essencial para evitar erros de CORS com Apps Script
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(workoutsData)
+                });
+                console.log("Dados enviados para a planilha.");
+            } catch (error) {
+                console.error('Erro ao salvar os dados:', error);
+                alert('Não foi possível salvar os dados. Verifique sua conexão.');
+            } finally {
+                // Esconde o loading após um pequeno atraso para dar feedback visual
+                setTimeout(hideLoading, 300);
+            }
+        }
+
+        async function loadDataFromGoogleSheets() {
+            showLoading('Carregando treinos...');
+            try {
+                // Usamos 'GET' para receber dados da função 'doGet' no Apps Script
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // Verifica se os dados carregados não estão vazios
+                if (data && Object.keys(data).length > 0) {
+                    workoutsData = data;
+                    console.log("Dados carregados da planilha com sucesso.");
+                } else {
+                    // Se não houver dados, inicializa com o padrão
+                    initializeDefaultData();
+                    console.log("Nenhum dado encontrado, inicializando com treinos padrão.");
+                }
+            } catch (error) {
+                console.error('Erro ao carregar os dados:', error);
+                alert('Não foi possível carregar os treinos salvos. Usando dados padrão.');
+                initializeDefaultData();
+            } finally {
+                hideLoading();
+            }
+        }
 
         // --- FUNÇÕES AUXILIARES ---
         function showScreen(screenId) {
@@ -205,10 +292,11 @@
         // --- LÓGICA DE RENDERIZAÇÃO ---
         function renderWorkout(workoutId) {
             const workout = workoutsData[workoutId];
-            const workoutTitleContainer = document.getElementById('workout-title-container');
-            workoutTitleContainer.innerHTML = `<h2 id="workout-title" class="text-lg font-semibold text-gray-900">${workout.title}</h2>`;
-            document.getElementById('edit-workout-title-btn').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>`;
-            
+            if (!workout) {
+                console.error(`Workout com ID "${workoutId}" não encontrado.`);
+                return;
+            }
+            document.getElementById('workout-title').textContent = workout.title;
             const exerciseList = document.getElementById('exercise-list');
             exerciseList.innerHTML = ''; // Limpa a lista atual
 
@@ -221,6 +309,7 @@
                         <div class="reps font-bold text-lg">${set.reps}x</div>
                         <div class="weight text-sm">${set.weight}kg</div>
                         <div class="status text-xs text-gray-600 mt-1">${set.intensity}</div>
+                        <div class="checkmark hidden font-bold">Feito ✓</div>
                     </div>
                 `).join('');
 
@@ -247,6 +336,9 @@
                             </button>
                         </div>
                     </div>
+                    <div class="rest-timer-container bg-gray-300 h-2 w-full rounded-full mt-2 hidden">
+                         <div class="rest-timer-progress bg-blue-500 h-2 rounded-full"></div>
+                    </div>
                     <div class="sets-container grid grid-cols-4 gap-3 text-center mt-3">${setsHTML}</div>
                 </div>`;
                 exerciseList.insertAdjacentHTML('beforeend', exerciseHTML);
@@ -257,31 +349,80 @@
         }
 
         function handleSetClick(box, isInitialRender = false) {
+            const exerciseItem = box.closest('.exercise-item');
+            const exerciseId = exerciseItem.id;
+            
             let isCompleted = box.dataset.completed === 'true';
             if (!isInitialRender) {
                 isCompleted = !isCompleted;
                 box.dataset.completed = isCompleted;
-                const exerciseId = box.closest('.exercise-item').id;
                 const setId = box.dataset.setId;
                 const exercise = workoutsData[currentWorkoutId].exercises.find(ex => ex.id === exerciseId);
                 const set = exercise.sets.find(s => s.id === setId);
                 set.completed = isCompleted;
+
+                if (isCompleted) {
+                    startRestTimer(exerciseId);
+                } else {
+                    stopRestTimer(exerciseId);
+                }
+                // Não salva a cada clique de série para não sobrecarregar, mas pode ser adicionado se desejado
+                // saveDataToGoogleSheets();
             }
 
-            const statusEl = box.querySelector('.status');
+            const statusText = box.querySelector('.status');
+            const checkmark = box.querySelector('.checkmark');
+            const infoDivs = [box.querySelector('.reps'), box.querySelector('.weight'), statusText];
             
             if (isCompleted) {
                 box.classList.replace('bg-gray-100', 'bg-blue-500');
                 box.classList.replace('text-black', 'text-white');
-                statusEl.innerHTML = 'Feito ✓';
-                statusEl.classList.remove('text-gray-600');
-                statusEl.classList.add('text-white', 'font-bold');
+                infoDivs.forEach(d => d.style.display = 'none');
+                checkmark.style.display = 'block';
             } else {
                 box.classList.replace('bg-blue-500', 'bg-gray-100');
                 box.classList.replace('text-white', 'text-black');
-                statusEl.innerHTML = box.dataset.intensity;
-                statusEl.classList.remove('text-white', 'font-bold');
-                statusEl.classList.add('text-gray-600');
+                infoDivs.forEach(d => d.style.display = 'block');
+                checkmark.style.display = 'none';
+            }
+        }
+
+        function startRestTimer(exerciseId) {
+            stopRestTimer(exerciseId); // Garante que qualquer timer anterior seja parado
+
+            const exercise = workoutsData[currentWorkoutId].exercises.find(ex => ex.id === exerciseId);
+            const exerciseItem = document.getElementById(exerciseId);
+            const timerContainer = exerciseItem.querySelector('.rest-timer-container');
+            const timerProgress = exerciseItem.querySelector('.rest-timer-progress');
+            
+            const restDuration = parseInt(exercise.restTime) || 60; // Padrão de 60s se não for número
+
+            timerContainer.classList.remove('hidden');
+            timerProgress.style.transition = 'none';
+            timerProgress.style.width = '0%';
+
+            void timerProgress.offsetWidth;
+
+            timerProgress.style.transition = `width ${restDuration}s linear`;
+            timerProgress.style.width = '100%';
+
+            activeTimers[exerciseId] = setTimeout(() => {
+                stopRestTimer(exerciseId);
+            }, restDuration * 1000);
+        }
+
+        function stopRestTimer(exerciseId) {
+            if (activeTimers[exerciseId]) {
+                clearTimeout(activeTimers[exerciseId]);
+                delete activeTimers[exerciseId];
+            }
+            const exerciseItem = document.getElementById(exerciseId);
+            if (exerciseItem) {
+                const timerContainer = exerciseItem.querySelector('.rest-timer-container');
+                const timerProgress = exerciseItem.querySelector('.rest-timer-progress');
+                timerContainer.classList.add('hidden');
+                timerProgress.style.transition = 'none';
+                timerProgress.style.width = '0%';
             }
         }
 
@@ -296,6 +437,7 @@
                 [exercises[index], exercises[index + 1]] = [exercises[index + 1], exercises[index]];
             }
             renderWorkout(currentWorkoutId);
+            saveDataToGoogleSheets(); // Salva a nova ordem
         }
 
         function updateEventListeners() {
@@ -328,13 +470,22 @@
                     return;
                 }
 
-                if (setBox) { handleSetClick(setBox); return; }
-                if (moveBtn) { moveExercise(moveBtn.closest('.exercise-item').id, moveBtn.dataset.direction); return; }
+                if (setBox) {
+                    handleSetClick(setBox);
+                    return;
+                }
+
+                if (moveBtn) {
+                    const exerciseId = moveBtn.closest('.exercise-item').id;
+                    const direction = moveBtn.dataset.direction;
+                    moveExercise(exerciseId, direction);
+                    return;
+                }
             };
         }
 
         // --- INICIALIZAÇÃO ---
-        function initializeApp() {
+        function initializeDefaultData() {
             const defaultSet = () => ({ id: generateUniqueId(), reps: 10, weight: 20, intensity: 'Pesado', completed: false });
             const defaultExercise = {
                 id: generateUniqueId(), name: 'Supino Reto c/ Barra', restTime: '75s', observation: '',
@@ -347,171 +498,163 @@
                     exercises: tab === 'A' ? [JSON.parse(JSON.stringify(defaultExercise))] : []
                 };
             }
+        }
+        
+        async function initializeApp() {
+            await loadDataFromGoogleSheets();
             renderWorkout(currentWorkoutId);
+            setupGlobalEventListeners();
         }
 
         // --- EVENT LISTENERS GLOBAIS ---
-        document.getElementById('workout-tabs').addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
-                currentWorkoutId = e.target.dataset.tab;
-                document.querySelectorAll('#workout-tabs button').forEach(btn => btn.classList.remove('tab-active'));
-                e.target.classList.add('tab-active');
-                renderWorkout(currentWorkoutId);
-            }
-        });
-
-        const editWorkoutTitleBtn = document.getElementById('edit-workout-title-btn');
-        const workoutTitleContainer = document.getElementById('workout-title-container');
-        editWorkoutTitleBtn.addEventListener('click', () => {
-            const isEditing = workoutTitleContainer.querySelector('input') !== null;
-            if (isEditing) {
-                const input = workoutTitleContainer.querySelector('input');
-                workoutsData[currentWorkoutId].title = input.value;
-                workoutTitleContainer.innerHTML = `<h2 id="workout-title" class="text-lg font-semibold text-gray-900">${input.value}</h2>`;
-                editWorkoutTitleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>`;
-            } else {
-                const h2 = document.getElementById('workout-title');
-                workoutTitleContainer.innerHTML = `<input type="text" value="${h2.textContent}" class="text-lg font-semibold text-gray-900 bg-white border-b-2 border-blue-500 focus:outline-none w-full">`;
-                workoutTitleContainer.querySelector('input').focus();
-                editWorkoutTitleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
-            }
-        });
-
-        document.getElementById('add-new-exercise-btn').onclick = () => showScreen('screen-select-exercise');
-        
-        const exerciseListContainer = document.getElementById('predefined-exercise-list');
-        predefinedExercises.forEach(name => {
-            const li = document.createElement('li');
-            li.innerHTML = `<button class="w-full text-left p-3 bg-gray-100 rounded-lg hover:bg-gray-200">${name}</button>`;
-            exerciseListContainer.appendChild(li);
-        });
-        exerciseListContainer.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
-                const newExercise = {
-                    id: generateUniqueId(), name: e.target.textContent, restTime: '60s', observation: '',
-                    sets: [{ id: generateUniqueId(), reps: 10, weight: 10, intensity: 'Pesado', completed: false }]
-                };
-                workoutsData[currentWorkoutId].exercises.push(newExercise);
-                renderWorkout(currentWorkoutId);
-                showScreen('screen-list');
-            }
-        });
-
-        document.getElementById('search-exercise-input').addEventListener('keyup', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            document.querySelectorAll('#predefined-exercise-list li').forEach(li => {
-                li.style.display = li.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+        function setupGlobalEventListeners() {
+            document.getElementById('workout-tabs').addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentWorkoutId = e.target.dataset.tab;
+                    document.querySelectorAll('#workout-tabs button').forEach(btn => btn.classList.remove('tab-active'));
+                    e.target.classList.add('tab-active');
+                    renderWorkout(currentWorkoutId);
+                }
             });
-        });
 
-        document.getElementById('edit-sets-container').addEventListener('click', (e) => {
-            const setBox = e.target.closest('.edit-set-box');
-            if (e.target.id === 'add-new-set-btn') {
-                const allSetsInEdit = e.currentTarget.querySelectorAll('.edit-set-box');
-                const lastSet = allSetsInEdit[allSetsInEdit.length - 1];
-                
-                const reps = lastSet ? lastSet.dataset.reps : 8;
-                const weight = lastSet ? lastSet.dataset.weight : 0;
-                const intensity = lastSet ? lastSet.dataset.intensity : 'Pesado';
-                const newSetId = generateUniqueId();
+            const editWorkoutTitleBtn = document.getElementById('edit-workout-title-btn');
+            const workoutTitleContainer = document.getElementById('workout-title-container');
+            editWorkoutTitleBtn.addEventListener('click', () => {
+                const isEditing = workoutTitleContainer.querySelector('input') !== null;
+                if (isEditing) {
+                    const input = workoutTitleContainer.querySelector('input');
+                    workoutsData[currentWorkoutId].title = input.value;
+                    renderWorkout(currentWorkoutId);
+                    saveDataToGoogleSheets();
+                } else {
+                    const h2 = document.getElementById('workout-title');
+                    workoutTitleContainer.innerHTML = `<input type="text" value="${h2.textContent}" class="text-lg font-semibold text-gray-900 bg-white border-b-2 border-blue-500 focus:outline-none w-full">`;
+                    workoutTitleContainer.querySelector('input').focus();
+                    editWorkoutTitleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
+                }
+            });
 
-                const newSetHTML = `<div class="edit-set-box bg-gray-100 text-gray-800 p-2 rounded-lg relative cursor-pointer" data-set-id="${newSetId}" data-reps="${reps}" data-weight="${weight}" data-intensity="${intensity}"><button class="remove-set-btn absolute -top-1 -right-1 bg-red-500 rounded-full h-5 w-5 text-white flex items-center justify-center text-xs">x</button><div class="reps font-bold">${reps}x</div><div class="weight text-sm">${weight}kg</div><div class="status text-xs text-gray-600">${intensity}</div></div>`;
-                e.target.insertAdjacentHTML('beforebegin', newSetHTML); return;
-            }
-            if (e.target.classList.contains('remove-set-btn')) { e.target.closest('.edit-set-box').remove(); return; }
-            if (!setBox) return;
-
-            const allSets = [...e.currentTarget.querySelectorAll('.edit-set-box')];
-            currentSetIndex = allSets.findIndex(el => el === setBox);
-
-            document.getElementById('edit-set-title').textContent = `${document.getElementById('edit-exercise-name-input').value}: SÉRIE ${currentSetIndex + 1}`;
-            document.getElementById('edit-reps-input').value = setBox.dataset.reps;
-            document.getElementById('edit-weight-input').value = setBox.dataset.weight;
-            document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(btn => btn.classList.toggle('active', btn.textContent === setBox.dataset.intensity));
-            showScreen('screen-edit-set');
-        });
-
-        document.querySelectorAll('.go-back').forEach(button => { button.onclick = (e) => showScreen(e.currentTarget.dataset.target); });
-
-        document.getElementById('save-set-btn').onclick = () => {
-            const newReps = document.getElementById('edit-reps-input').value;
-            const newWeight = document.getElementById('edit-weight-input').value;
-            const newIntensity = document.querySelector('#intensity-buttons-container .intensity-btn.active').textContent;
+            document.getElementById('add-new-exercise-btn').onclick = () => showScreen('screen-select-exercise');
             
-            const allSetsInEdit = document.querySelectorAll('#edit-sets-container .edit-set-box');
+            const exerciseListContainer = document.getElementById('predefined-exercise-list');
+            predefinedExercises.forEach(name => {
+                const li = document.createElement('li');
+                li.innerHTML = `<button class="w-full text-left p-3 bg-gray-100 rounded-lg hover:bg-gray-200">${name}</button>`;
+                exerciseListContainer.appendChild(li);
+            });
+            exerciseListContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const newExercise = {
+                        id: generateUniqueId(), name: e.target.textContent, restTime: '60s', observation: '',
+                        sets: [{ id: generateUniqueId(), reps: 10, weight: 10, intensity: 'Pesado', completed: false }]
+                    };
+                    workoutsData[currentWorkoutId].exercises.push(newExercise);
+                    renderWorkout(currentWorkoutId);
+                    showScreen('screen-list');
+                    saveDataToGoogleSheets();
+                }
+            });
 
-            for (let i = currentSetIndex; i < allSetsInEdit.length; i++) {
-                const setToUpdate = allSetsInEdit[i];
-                setToUpdate.dataset.reps = newReps;
-                setToUpdate.dataset.weight = newWeight;
-                setToUpdate.dataset.intensity = newIntensity;
-                
-                setToUpdate.querySelector('.reps').textContent = `${newReps}x`;
-                setToUpdate.querySelector('.weight').textContent = `${newWeight}kg`;
-                setToUpdate.querySelector('.status').textContent = newIntensity;
-            }
-            
-            showScreen('screen-edit-exercise');
-        };
-
-        document.getElementById('save-exercise-btn').onclick = () => {
-            const exercise = workoutsData[currentWorkoutId].exercises.find(ex => ex.id === currentExerciseId);
-            if (!exercise) return;
-            
-            exercise.name = document.getElementById('edit-exercise-name-input').value;
-            exercise.restTime = document.getElementById('edit-rest-time-input').value;
-            exercise.observation = document.getElementById('edit-observation-input').value;
-            
-            const newSets = [];
-            document.querySelectorAll('#edit-sets-container .edit-set-box').forEach(box => {
-                const setId = box.dataset.setId;
-                const originalSet = exercise.sets.find(s => s.id === setId);
-                const completedStatus = originalSet ? originalSet.completed : false;
-
-                newSets.push({
-                    id: setId, 
-                    reps: box.dataset.reps, 
-                    weight: box.dataset.weight,
-                    intensity: box.dataset.intensity, 
-                    completed: completedStatus
+            document.getElementById('search-exercise-input').addEventListener('keyup', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                document.querySelectorAll('#predefined-exercise-list li').forEach(li => {
+                    li.style.display = li.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
                 });
             });
-            exercise.sets = newSets;
 
-            renderWorkout(currentWorkoutId);
-            showScreen('screen-list');
-        };
-        
-        document.getElementById('remove-exercise-btn').onclick = () => {
-            if (confirm('Tem certeza que deseja remover este exercício?')) { 
-                const workout = workoutsData[currentWorkoutId];
-                workout.exercises = workout.exercises.filter(ex => ex.id !== currentExerciseId);
-                renderWorkout(currentWorkoutId);
-                showScreen('screen-list'); 
-            }
-        };
+            document.getElementById('edit-sets-container').addEventListener('click', (e) => {
+                const setBox = e.target.closest('.edit-set-box');
+                if (e.target.id === 'add-new-set-btn') {
+                    const newSet = { id: generateUniqueId(), reps: 8, weight: 0, intensity: 'Pesado' };
+                    const newSetHTML = `<div class="edit-set-box bg-gray-100 text-gray-800 p-2 rounded-lg relative cursor-pointer" data-set-id="${newSet.id}" data-reps="${newSet.reps}" data-weight="${newSet.weight}" data-intensity="${newSet.intensity}"><button class="remove-set-btn absolute -top-1 -right-1 bg-red-500 rounded-full h-5 w-5 text-white flex items-center justify-center text-xs">x</button><div class="reps font-bold">${newSet.reps}x</div><div class="weight text-sm">${newSet.weight}kg</div><div class="status text-xs text-gray-600">${newSet.intensity}</div></div>`;
+                    e.target.insertAdjacentHTML('beforebegin', newSetHTML); return;
+                }
+                if (e.target.classList.contains('remove-set-btn')) { e.target.closest('.edit-set-box').remove(); return; }
+                if (!setBox) return;
 
-        document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(button => {
-            button.onclick = () => { document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(btn => btn.classList.remove('active')); button.classList.add('active'); };
-        });
+                currentSetId = setBox.dataset.setId;
+                document.getElementById('edit-set-title').textContent = `${document.getElementById('edit-exercise-name-input').value}: SÉRIE`;
+                document.getElementById('edit-reps-input').value = setBox.dataset.reps;
+                document.getElementById('edit-weight-input').value = setBox.dataset.weight;
+                document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(btn => btn.classList.toggle('active', btn.textContent === setBox.dataset.intensity));
+                showScreen('screen-edit-set');
+            });
 
-        const finishWorkoutBtn = document.getElementById('finish-workout-btn');
-        finishWorkoutBtn.onclick = () => {
-            const currentState = finishWorkoutBtn.dataset.state;
-            if (currentState === 'active') {
-                finishWorkoutBtn.dataset.state = 'finished';
-                finishWorkoutBtn.textContent = 'Reiniciar Treino';
-                finishWorkoutBtn.classList.replace('bg-blue-600', 'bg-gray-500');
-            } else {
-                finishWorkoutBtn.dataset.state = 'active';
-                finishWorkoutBtn.textContent = '✓ Treinei';
-                finishWorkoutBtn.classList.replace('bg-gray-500', 'bg-blue-600');
+            document.querySelectorAll('.go-back').forEach(button => { button.onclick = (e) => showScreen(e.currentTarget.dataset.target); });
+
+            document.getElementById('save-set-btn').onclick = () => {
+                const setToUpdateInEditScreen = document.querySelector(`#screen-edit-exercise .edit-set-box[data-set-id="${currentSetId}"]`);
+                if(setToUpdateInEditScreen) {
+                    setToUpdateInEditScreen.dataset.reps = document.getElementById('edit-reps-input').value;
+                    setToUpdateInEditScreen.dataset.weight = document.getElementById('edit-weight-input').value;
+                    setToUpdateInEditScreen.dataset.intensity = document.querySelector('#intensity-buttons-container .intensity-btn.active').textContent;
+                    
+                    setToUpdateInEditScreen.querySelector('.reps').textContent = `${setToUpdateInEditScreen.dataset.reps}x`;
+                    setToUpdateInEditScreen.querySelector('.weight').textContent = `${setToUpdateInEditScreen.dataset.weight}kg`;
+                    setToUpdateInEditScreen.querySelector('.status').textContent = setToUpdateInEditScreen.dataset.intensity;
+                }
+                showScreen('screen-edit-exercise');
+            };
+
+            document.getElementById('save-exercise-btn').onclick = () => {
+                const exercise = workoutsData[currentWorkoutId].exercises.find(ex => ex.id === currentExerciseId);
+                if (!exercise) return;
                 
-                workoutsData[currentWorkoutId].exercises.forEach(ex => ex.sets.forEach(s => s.completed = false));
-                renderWorkout(currentWorkoutId);
-            }
-        };
+                exercise.name = document.getElementById('edit-exercise-name-input').value;
+                exercise.restTime = document.getElementById('edit-rest-time-input').value;
+                exercise.observation = document.getElementById('edit-observation-input').value;
+                
+                const newSets = [];
+                document.querySelectorAll('#edit-sets-container .edit-set-box').forEach(box => {
+                    newSets.push({
+                        id: box.dataset.setId,
+                        reps: box.dataset.reps || box.querySelector('.reps').textContent.replace('x', ''),
+                        weight: box.dataset.weight || box.querySelector('.weight').textContent.replace('kg', ''),
+                        intensity: box.dataset.intensity,
+                        completed: false
+                    });
+                });
+                exercise.sets = newSets;
 
+                renderWorkout(currentWorkoutId);
+                showScreen('screen-list');
+                saveDataToGoogleSheets();
+            };
+            
+            document.getElementById('remove-exercise-btn').onclick = () => {
+                if (confirm('Tem certeza que deseja remover este exercício?')) { 
+                    const workout = workoutsData[currentWorkoutId];
+                    workout.exercises = workout.exercises.filter(ex => ex.id !== currentExerciseId);
+                    renderWorkout(currentWorkoutId);
+                    showScreen('screen-list'); 
+                    saveDataToGoogleSheets();
+                }
+            };
+
+            document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(button => {
+                button.onclick = () => { document.querySelectorAll('#intensity-buttons-container .intensity-btn').forEach(btn => btn.classList.remove('active')); button.classList.add('active'); };
+            });
+
+            const finishWorkoutBtn = document.getElementById('finish-workout-btn');
+            finishWorkoutBtn.onclick = () => {
+                const currentState = finishWorkoutBtn.dataset.state;
+                if (currentState === 'active') {
+                    finishWorkoutBtn.dataset.state = 'finished';
+                    finishWorkoutBtn.textContent = 'Reiniciar Treino';
+                    finishWorkoutBtn.classList.replace('bg-blue-600', 'bg-gray-500');
+                } else {
+                    finishWorkoutBtn.dataset.state = 'active';
+                    finishWorkoutBtn.textContent = '✓ Treinei';
+                    finishWorkoutBtn.classList.replace('bg-gray-500', 'bg-blue-600');
+                    
+                    workoutsData[currentWorkoutId].exercises.forEach(ex => ex.sets.forEach(s => s.completed = false));
+                    renderWorkout(currentWorkoutId);
+                }
+                saveDataToGoogleSheets();
+            };
+        }
+
+        // Inicia o aplicativo
         initializeApp();
     });
     </script>
